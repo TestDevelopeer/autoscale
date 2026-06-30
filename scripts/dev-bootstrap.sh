@@ -49,6 +49,7 @@ pip install -q \
   "$ROOT/packages/alpr-core" \
   "$ROOT/apps/local-api" \
   psycopg2-binary email-validator \
+  "$ROOT/packages/terminal-drivers[hardware]" \
   pytest pytest-asyncio httpx
 
 echo "==> Composer (local-panel, owner-admin)"

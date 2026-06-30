@@ -20,7 +20,7 @@ def parse_cas_frame(raw: bytes | str) -> TerminalReading:
     else:
         text = raw.strip()
 
-    stable = "ST" in text or text.startswith("S")
+    stable = "ST" in text.upper() or text.upper().startswith("S")
     numbers = re.findall(r"-?\d+(?:\.\d+)?", text)
     weight = Decimal("0")
     if numbers:
@@ -28,6 +28,18 @@ def parse_cas_frame(raw: bytes | str) -> TerminalReading:
             weight = Decimal(numbers[0])
         except InvalidOperation:
             weight = Decimal("0")
+
+    if not numbers:
+        return TerminalReading(
+            weight=Decimal("0"),
+            unit="kg",
+            stable=False,
+            raw=text,
+            timestamp=datetime.now(timezone.utc),
+            status="parse_error",
+            error="Не удалось извлечь вес из кадра CAS",
+            protocol="cas_stream",
+        )
 
     return TerminalReading(
         weight=weight,

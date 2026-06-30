@@ -9,6 +9,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0.0"]
+hardware = ["pyserial>=3.5"]
 
 [build-system]
 requires = ["hatchling"]
