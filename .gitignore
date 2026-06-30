@@ -28,12 +28,15 @@ apps/*/bootstrap/cache/*.php
 # Env
 .env
 .env.local
+.env.dev.keys
 *.lic
 license-data/
 
 # Logs
 *.log
+bootstrap-run.log
 logs/
+storage/logs/
 
 # Docker volumes
 .docker-data/
