@@ -11,6 +11,7 @@ use App\Orchid\Screens\DriverListScreen;
 use App\Orchid\Screens\LicenseScreen;
 use App\Orchid\Screens\TerminalEditScreen;
 use App\Orchid\Screens\TerminalListScreen;
+use App\Orchid\Screens\User\UserProfileScreen;
 use App\Orchid\Screens\WeighingJournalScreen;
 use App\Orchid\Screens\WorkplaceEditScreen;
 use App\Orchid\Screens\WorkplaceListScreen;
@@ -19,6 +20,12 @@ use Illuminate\Support\Facades\Route;
 use Tabuna\Breadcrumbs\Trail;
 
 Route::screen('/main', DashboardScreen::class)->name('platform.main');
+
+Route::screen('profile', UserProfileScreen::class)
+    ->name('platform.profile')
+    ->breadcrumbs(fn (Trail $trail) => $trail
+        ->parent('platform.main')
+        ->push(__('Profile'), route('platform.profile')));
 
 Route::screen('terminals', TerminalListScreen::class)->name('platform.terminals');
 Route::screen('terminals/create', TerminalEditScreen::class)->name('platform.terminals.create');
