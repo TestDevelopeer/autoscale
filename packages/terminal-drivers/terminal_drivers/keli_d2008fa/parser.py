@@ -29,7 +29,19 @@ def parse_keli_modbus_response(raw: bytes | str) -> TerminalReading:
         except InvalidOperation:
             weight = Decimal("0")
 
-    stable = "ST" in text.upper() or "STABLE" in text.upper() or weight > 0
+    stable = "ST" in text.upper() or "STABLE" in text.upper()
+
+    if not match:
+        return TerminalReading(
+            weight=Decimal("0"),
+            unit="kg",
+            stable=False,
+            raw=text if isinstance(raw, str) else raw.hex(),
+            timestamp=datetime.now(timezone.utc),
+            status="parse_error",
+            error="Не удалось извлечь вес из кадра Keli",
+            protocol="keli_modbus",
+        )
 
     return TerminalReading(
         weight=weight,

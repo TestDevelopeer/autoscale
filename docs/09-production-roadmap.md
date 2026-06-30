@@ -52,6 +52,10 @@
 
 ## Этап 1: Проверка реального железа Keli D2008FA и CAS CI-200A
 
+**Статус:** в работе (`feature/hardware-validation`)
+
+**Документ:** [`11-hardware-validation-plan.md`](11-hardware-validation-plan.md)
+
 **Цель:** подтвердить парсеры и polling/stream на реальных весах.
 
 **Работы:**
