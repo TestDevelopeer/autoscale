@@ -1,0 +1,18 @@
+[project]
+name = "alpr-core"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "hardware-core",
+    "pydantic>=2.0.0",
+]
+
+[project.optional-dependencies]
+nomeroff = ["nomeroff-net"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["alpr_core"]

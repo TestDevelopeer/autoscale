@@ -1,0 +1,20 @@
+[project]
+name = "autoscale"
+version = "0.1.0"
+description = "Autoscale MVP — автоматизация взвешивания на автомобильных весах"
+requires-python = ">=3.11"
+readme = "readme.md"
+
+[tool.uv.workspace]
+members = [
+    "apps/local-api",
+    "packages/license-core",
+    "packages/hardware-core",
+    "packages/terminal-drivers",
+    "packages/camera-core",
+    "packages/alpr-core",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["apps/local-api/tests", "packages"]
+pythonpath = ["apps/local-api", "packages"]
