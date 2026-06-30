@@ -86,18 +86,57 @@ class TerminalEditScreen extends Screen
             $terminal = $this->api->post('/api/terminals', $this->terminalPayload($request));
             $result = $this->api->post('/api/terminals/'.$terminal['id'].'/test');
             $reading = $result['sample_reading'] ?? null;
+            $hasValidReading = is_array($reading)
+                && ($reading['status'] ?? 'ok') === 'ok'
+                && empty($reading['error']);
+            $success = (bool) ($result['success'] ?? false);
+            $connected = (bool) ($result['connected'] ?? false);
+            if ($success && $hasValidReading) {
+                $connected = true;
+            }
+
+            if (! $success) {
+                $code = $result['error_code'] ?? 'error';
+                $message = $result['message'] ?? 'Проверка не удалась';
+                $raw = is_array($reading) ? ($reading['raw'] ?? '') : '';
+                Toast::error($this->formatTestError($connected, $code, $message, $raw));
+
+                return;
+            }
+
             if (is_array($reading)) {
-                $weight = $reading['weight'] ?? '—';
-                $stable = ($reading['stable'] ?? false) ? 'true' : 'false';
-                $unit = $reading['unit'] ?? 'kg';
-                $raw = $reading['raw'] ?? ($result['message'] ?? '');
-                Toast::success("weight={$weight}, stable={$stable}, unit={$unit}, raw={$raw}");
+                Toast::success($this->formatTestSuccess($reading, $connected));
             } else {
                 Toast::success($result['message'] ?? 'Подключение успешно');
             }
         } catch (\Throwable $e) {
             Toast::error($e->getMessage());
         }
+    }
+
+    private function formatTestSuccess(array $reading, bool $connected): string
+    {
+        $weight = $reading['weight'] ?? '—';
+        $unit = $reading['unit'] ?? 'кг';
+        $stable = ($reading['stable'] ?? false) ? 'да' : 'нет';
+        $raw = $reading['raw'] ?? '';
+
+        return sprintf(
+            'Подключение успешно. Вес: %s %s. Стабильный: %s. Raw: %s',
+            $weight,
+            $unit,
+            $stable,
+            $raw
+        );
+    }
+
+    private function formatTestError(bool $connected, string $code, string $message, string $raw): string
+    {
+        $prefix = $connected ? 'COM открыт, но проверка не удалась' : 'Подключение не удалось';
+
+        return $raw !== ''
+            ? sprintf('%s (%s): %s. Raw: %s', $prefix, $code, $message, $raw)
+            : sprintf('%s (%s): %s', $prefix, $code, $message);
     }
 
     public function save(Request $request): \Illuminate\Http\RedirectResponse

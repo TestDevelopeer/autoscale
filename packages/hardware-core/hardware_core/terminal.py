@@ -40,6 +40,25 @@ class TestResult(BaseModel):
     success: bool
     message: str = ""
     sample_reading: TerminalReading | None = None
+    connected: bool = False
+    error_code: str | None = None
+
+
+def normalize_test_result(result: TestResult) -> TestResult:
+    """
+    connected = проверка успешно прочитала данные с терминала,
+    а не «порт всё ещё открыт» после disconnect.
+    """
+    reading = result.sample_reading
+    if (
+        result.success
+        and reading is not None
+        and reading.status == "ok"
+        and not reading.error
+        and not result.connected
+    ):
+        return result.model_copy(update={"connected": True})
+    return result
 
 
 @runtime_checkable
