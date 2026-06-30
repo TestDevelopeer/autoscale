@@ -8,7 +8,7 @@
 
 - PostgreSQL 17 на `127.0.0.1:5432`
 - Python 3.12+, PHP 8.4+, Composer
-- Порты свободны: **8000**, **8080**, **8090**
+- Порты свободны: **8000**, **8081**, **8090**
 
 ---
 
@@ -30,7 +30,7 @@ chmod +x scripts/dev-bootstrap.sh scripts/demo-smoke.sh
 cd apps/local-api && ../../.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
 
 # Терминал 2 — панель оператора
-cd apps/local-panel && php artisan serve --host=127.0.0.1 --port=8080
+cd apps/local-panel && php artisan serve --host=127.0.0.1 --port=8081
 
 # Терминал 3 — owner-admin (опционально для demo лицензий)
 cd apps/owner-admin && php artisan serve --host=127.0.0.1 --port=8090
@@ -56,8 +56,8 @@ DEMO_SMOKE_FULL=1 ./scripts/demo-smoke.sh
 
 | Сервис | URL |
 |--------|-----|
-| Панель (вход) | http://127.0.0.1:8080/login |
-| Панель (admin) | http://127.0.0.1:8080/admin |
+| Панель (вход) | http://127.0.0.1:8081/login |
+| Панель (admin) | http://127.0.0.1:8081/admin |
 | API health | http://127.0.0.1:8000/api/health |
 | owner-admin | http://127.0.0.1:8090 |
 
@@ -120,3 +120,65 @@ psql -d autoscale_local -c "DELETE FROM weighing_records;"
 - Windows installer — skeleton only
 
 Подробнее: [`docs/07-mvp-acceptance-report.md`](07-mvp-acceptance-report.md)
+
+---
+
+## Windows PowerShell quick start
+
+Требования те же: PostgreSQL 17, Python 3.11+, PHP 8.4+, Composer. Порты **8000**, **8081**, **8090** свободны.
+
+### 1. Bootstrap (один раз)
+
+```powershell
+$env:PGUSER = "postgres"
+$env:PGHOST = "127.0.0.1"
+$env:PGPORT = "5432"
+$env:PGPASSWORD = "your-password"   # local session only, do not commit
+
+.\scripts\dev-bootstrap.ps1
+.\scripts\start-demo.ps1
+.\scripts\demo-smoke.ps1
+.\scripts\demo-smoke.ps1 -Full
+```
+
+Опциональные переменные: `LOCAL_DB_NAME` (по умолчанию `autoscale_local`), `OWNER_DB_NAME` (по умолчанию `autoscale_owner`).
+
+### 2. Запуск demo
+
+```powershell
+.\scripts\start-demo.ps1
+```
+
+Сервисы стартуют в фоне; логи: `storage\logs\demo\`.
+
+### 3. Smoke-проверка
+
+```powershell
+.\scripts\demo-smoke.ps1
+.\scripts\demo-smoke.ps1 -Full
+```
+
+### 4. Панель оператора
+
+| URL | http://127.0.0.1:8081/login |
+| Логин | `operator@demo.local` / `demo` |
+
+### 5. Остановка demo
+
+```powershell
+.\scripts\stop-demo.ps1
+```
+
+### 6. Health (PowerShell / cmd)
+
+```powershell
+curl.exe -i http://127.0.0.1:8000/api/health
+```
+
+Ожидание: `HTTP/1.1 200 OK`, `"status":"ok"`.
+
+### Примечания
+
+- Используйте **PowerShell**, не WSL bash — `dev-bootstrap.sh` для Linux/macOS/Git Bash.
+- Shell-скрипты (`.sh`) в репозитории с LF; при ошибке `pipefail: invalid option name` выполните `git checkout -- scripts/*.sh`.
+- На Windows venv: `.venv\Scripts\python.exe` (создаётся bootstrap-скриптом).

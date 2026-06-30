@@ -8,7 +8,7 @@
 flowchart TB
   subgraph client [Клиентская машина]
     Browser[Browser]
-    Panel[local-panel Orchid :8080]
+    Panel[local-panel Orchid :8081]
     API[local-api FastAPI :8000]
     DB[(PostgreSQL)]
     Tray[installer tray]
@@ -230,7 +230,7 @@ Panel открывает WS напрямую к `local-api` (не через Lar
 | Сервис | URL |
 |--------|-----|
 | local-api | http://127.0.0.1:8000 |
-| local-panel | http://127.0.0.1:8080 |
+| local-panel | http://127.0.0.1:8081 |
 | owner-admin | http://127.0.0.1:8090 |
 | PostgreSQL local | localhost:5432 |
 | PostgreSQL owner | localhost:5433 |

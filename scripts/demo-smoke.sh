@@ -4,7 +4,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 API="${API_URL:-http://127.0.0.1:8000}"
-PANEL="${PANEL_URL:-http://127.0.0.1:8080}"
+PANEL="${PANEL_URL:-http://127.0.0.1:8081}"
 OWNER="${OWNER_URL:-http://127.0.0.1:8090}"
 FULL_CYCLE="${DEMO_SMOKE_FULL:-0}"
 
