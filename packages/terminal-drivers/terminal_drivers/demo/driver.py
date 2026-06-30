@@ -84,7 +84,12 @@ class DemoTerminalDriver:
 
     def test_connection(self) -> TestResult:
         reading = self._synthetic_reading()
-        return TestResult(success=True, message="DEMO terminal OK", sample_reading=reading)
+        return TestResult(
+            success=True,
+            connected=True,
+            message="DEMO terminal OK",
+            sample_reading=reading,
+        )
 
     def read_frame(self) -> str:
         return self._synthetic_reading().raw

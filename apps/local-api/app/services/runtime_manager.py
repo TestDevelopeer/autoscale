@@ -9,6 +9,7 @@ from typing import Any
 from terminal_drivers import create_terminal_driver
 from camera_core import create_camera_provider
 from alpr_core import create_alpr_provider
+from hardware_core.terminal import TestResult, normalize_test_result
 
 from app.services.workplace_orchestrator import WorkplaceConfig, WorkplaceOrchestrator, WeighingState
 
@@ -215,9 +216,21 @@ class RuntimeManager:
 
     async def test_terminal(self, driver_type: str, config: dict) -> dict:
         driver = create_terminal_driver(driver_type, config)
-        driver.connect()
-        result = driver.test_connection()
-        driver.disconnect()
+        try:
+            driver.connect()
+            result = normalize_test_result(driver.test_connection())
+        except Exception as exc:
+            return TestResult(
+                success=False,
+                connected=False,
+                message=str(exc),
+                error_code="unexpected_error",
+            ).model_dump(mode="json")
+        finally:
+            try:
+                driver.disconnect()
+            except Exception:
+                pass
         return result.model_dump(mode="json")
 
     async def test_camera(self, connection_type: str, config: dict) -> dict:
