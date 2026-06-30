@@ -20,7 +20,7 @@
 
 | Терминал | driver type | Протокол MVP | Default baud | Default parity |
 |----------|-------------|--------------|--------------|----------------|
-| Keli D2008FA | `keli_d2008fa` / `keli-d2008fa` | Modbus RTU poll `0x03` | 9600 | even (часто E) |
+| Keli D2008FA | `keli_d2008fa` / `keli-d2008fa` | ASCII continuous stream (+ Modbus poll fallback) | 9600 | **none (N)** — проверено на объекте; even давал битый raw |
 | CAS CI-200A | `cas_ci200a` / `cas-ci-200a` | stream + fallback `WT` | 19200 | none (N) |
 | DEMO | `demo` | синтетика | — | — |
 
@@ -32,7 +32,7 @@
 |----------|--------------|-------------|------------|
 | port | COM3 / `/dev/ttyUSB0` | COM1 / `/dev/ttyUSB0` | **не хардкодить** — задавать явно |
 | baudrate | 9600 | 19200 | при ошибках пробовать 4800/19200 |
-| parity | even (E) | none (N) | mismatch → мусор в raw |
+| parity | **none (N)** — проверено на COM1 | none (N) | mismatch → мусор в raw; Keli: even → `parse_failed` |
 | data_bits | 8 | 8 | |
 | stop_bits | 1 | 1 | |
 | timeout | 2 s | 2 s | увеличить при медленном ответе |
@@ -182,6 +182,83 @@ DEMO_SMOKE_FULL=1 ./scripts/demo-smoke.sh
 ```
 
 4. В panel использовать только Demo Lane для показа.
+
+---
+
+## Keli D2008FA real validation result
+
+**Дата проверки:** 2026-06-30  
+**Инструмент:** `terminal_probe.py` (без записей в журнал и без FSM)
+
+Терминал Keli D2008FA **реально проверен** на объекте через `terminal_probe`.
+
+### Рабочие настройки COM
+
+| Параметр | Значение |
+|----------|----------|
+| port | COM1 |
+| baudrate | 9600 |
+| parity | **none** |
+| timeout | 2 s |
+
+**Важно:** при `parity even` в raw приходили битые символы и `parse_failed`. При `parity none` кадры читаются как читаемый ASCII.
+
+### Команда probe
+
+```bash
+python apps/local-api/scripts/terminal_probe.py \
+  --driver keli-d2008fa \
+  --port COM1 \
+  --baudrate 9600 \
+  --parity none \
+  --timeout 2 \
+  --duration 30
+```
+
+### Фактический результат
+
+```
+driver: keli_d2008fa
+connected: True
+success: 120
+failures: 0
+last parsed: weight=0 stable=True unit=kg status=ok
+last raw: ST,GS,+0000000kg
+```
+
+### Формат кадра (ASCII continuous)
+
+Parser поддерживает формат:
+
+```text
+<stability>,<weight_type>,<signed_weight><unit>
+```
+
+| Поле | Значение | Пример |
+|------|----------|--------|
+| stability | `ST` = stable, `US` = unstable | `ST` |
+| weight_type | `GS` = gross, `NT` = net | `GS` |
+| signed_weight | знак `+`/`-` и цифры | `+0000000` |
+| unit | `kg`, `g`, `t`, `lb` (минимум `kg`) | `kg` |
+
+Пример raw frame: `ST,GS,+0000000kg` → **0 kg**, stable, gross.
+
+### Тесты после исправления parser
+
+```text
+37 passed, 1 skipped
+```
+
+### Ограничения проверки
+
+- Проверка выполнялась **без создания записей в журнале** (`weighing_records` не затрагивались).
+- DEMO flow не менялся.
+
+### Следующий шаг
+
+1. Подключить Keli в **local-panel** (терминал с `driver_type=keli_d2008fa`, config: port/baud/parity).
+2. Проверить `POST /api/terminals/{id}/test` (**test_connection**).
+3. Проверить **workplace live** на реальной полосе (после стабильного panel test).
 
 ---
 

@@ -27,6 +27,57 @@ def test_keli_parser_error():
     assert reading.error
 
 
+@pytest.mark.parametrize(
+    "raw_frame",
+    [
+        "ST,GS,+0000000kg",
+        "ST,GS,+0000000kg\r",
+        "ST,GS,+0000000kg\n",
+        "ST,GS,+0000000kg\r\n",
+    ],
+)
+def test_keli_parser_ascii_continuous_real_frame(raw_frame):
+    """Реальный кадр с Keli D2008FA по COM1."""
+    reading = parse_keli_modbus_response(raw_frame)
+    assert reading.status == "ok"
+    assert reading.weight == Decimal("0")
+    assert reading.unit == "kg"
+    assert reading.stable is True
+    assert reading.metadata["weight_type"] == "gross"
+    assert reading.raw == "ST,GS,+0000000kg"
+
+
+def test_keli_parser_ascii_continuous_unstable():
+    reading = parse_keli_modbus_response("US,GS,+0015000kg")
+    assert reading.status == "ok"
+    assert reading.weight == Decimal("15000")
+    assert reading.unit == "kg"
+    assert reading.stable is False
+    assert reading.metadata["weight_type"] == "gross"
+
+
+def test_keli_parser_ascii_continuous_net_negative():
+    reading = parse_keli_modbus_response("ST,NT,-0000010kg")
+    assert reading.status == "ok"
+    assert reading.weight == Decimal("-10")
+    assert reading.stable is True
+    assert reading.metadata["weight_type"] == "net"
+
+
+def test_keli_parser_ascii_continuous_positive():
+    reading = parse_keli_modbus_response("US,GS,+0000123kg")
+    assert reading.weight == Decimal("123")
+    assert reading.stable is False
+
+
+def test_keli_probe_fixture_zero_weight():
+    settings = SerialSettings(port="FIXTURE", baudrate=9600)
+    runner = TerminalProbeRunner("keli-d2008fa", settings)
+    report = runner.run_fixture(["ST,GS,+0000000kg"])
+    assert report.success_count == 1
+    assert report.failure_count == 0
+
+
 def test_cas_parser_stable():
     reading = parse_cas_frame("ST     15230 kg")
     assert reading.stable is True

@@ -65,10 +65,6 @@ def _evaluate_reading(reading: TerminalReading, report: ProbeReport) -> None:
         })
         return
 
-    if reading.weight <= 0:
-        report.add_error(parse_failed(str(reading.raw)[:120]).to_dict())
-        return
-
     report.record_success()
     report.add_parsed(_reading_to_dict(reading))
 
