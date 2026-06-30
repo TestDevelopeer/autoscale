@@ -45,3 +45,4 @@ models/
 
 # Installer artifacts
 installer/dist/
+storage/probes/
