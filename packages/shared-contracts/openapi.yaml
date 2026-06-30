@@ -1,0 +1,62 @@
+openapi: 3.1.0
+info:
+  title: Autoscale Local API
+  version: 0.1.0
+servers:
+  - url: http://127.0.0.1:8000
+paths:
+  /api/health:
+    get:
+      summary: Health check
+      tags: [health]
+      responses:
+        "200":
+          description: OK
+  /api/auth/login:
+    post:
+      summary: Operator login
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+      responses:
+        "200":
+          description: Bearer token
+  /api/license/status:
+    get:
+      summary: License status
+      tags: [license]
+      responses:
+        "200":
+          description: License info
+  /api/terminals:
+    get:
+      summary: List terminals
+      tags: [terminals]
+      security: [{ bearerAuth: [] }]
+    post:
+      summary: Create terminal
+      tags: [terminals]
+      security: [{ bearerAuth: [] }]
+  /api/workplaces/{id}/start:
+    post:
+      summary: Start workplace workflow
+      tags: [workplaces]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer

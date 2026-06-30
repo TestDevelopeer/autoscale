@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+dist/
+build/
+
+# Laravel
+apps/*/vendor/
+apps/*/node_modules/
+apps/*/.env
+apps/*/storage/*.key
+apps/*/public/hot
+apps/*/public/storage
+apps/*/bootstrap/cache/*.php
+
+# IDE
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Env
+.env
+.env.local
+*.lic
+license-data/
+
+# Logs
+*.log
+logs/
+
+# Docker volumes
+.docker-data/
+
+# ALPR models
+models/
+*.onnx
+*.pt
+
+# Installer artifacts
+installer/dist/
