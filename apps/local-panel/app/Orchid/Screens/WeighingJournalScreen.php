@@ -6,7 +6,9 @@ namespace App\Orchid\Screens;
 
 use App\Services\LocalApiClient;
 use App\Support\AutoscaleLabels;
+use App\Support\OrchidRows;
 use Orchid\Screen\Screen;
+use Orchid\Screen\Repository;
 use Orchid\Screen\TD;
 use Orchid\Support\Facades\Layout;
 
@@ -29,7 +31,7 @@ class WeighingJournalScreen extends Screen
             $weighings = [];
         }
 
-        return ['weighings' => $weighings];
+        return ['weighings' => OrchidRows::fromArrays($weighings)];
     }
 
     public function name(): ?string
@@ -41,25 +43,25 @@ class WeighingJournalScreen extends Screen
     {
         return [
             Layout::table('weighings', [
-                TD::make('recorded_at', 'Дата/время')->render(function (array $r) {
-                    $ts = $r['recorded_at'] ?? null;
+                TD::make('recorded_at', 'Дата/время')->render(function (Repository $r) {
+                    $ts = $r->get('recorded_at');
                     if (! $ts) {
                         return '—';
                     }
 
-                    return date('d.m.Y H:i:s', strtotime($ts));
+                    return date('d.m.Y H:i:s', strtotime((string) $ts));
                 }),
-                TD::make('plate_normalized', 'Номер')->render(fn (array $r) => $r['plate_normalized'] ?? $r['plate_raw'] ?? '—'),
-                TD::make('weight', 'Вес')->render(function (array $r) {
-                    if (! isset($r['weight'])) {
+                TD::make('plate_normalized', 'Номер')->render(fn (Repository $r) => $r->get('plate_normalized') ?? $r->get('plate_raw') ?? '—'),
+                TD::make('weight', 'Вес')->render(function (Repository $r) {
+                    if ($r->get('weight') === null) {
                         return '—';
                     }
 
-                    return number_format((float) $r['weight'], 0, '.', ' ').' '.($r['unit'] ?? 'кг');
+                    return number_format((float) $r->get('weight'), 0, '.', ' ').' '.($r->get('unit') ?? 'кг');
                 }),
-                TD::make('stable', 'Стабильный')->render(fn (array $r) => ($r['stable'] ?? false) ? 'Да' : 'Нет'),
+                TD::make('stable', 'Стабильный')->render(fn (Repository $r) => $r->get('stable') ? 'Да' : 'Нет'),
                 TD::make('workplace_name', 'Рабочее место'),
-                TD::make('status', 'Статус')->render(fn (array $r) => AutoscaleLabels::weighingStatus($r['status'] ?? null)),
+                TD::make('status', 'Статус')->render(fn (Repository $r) => AutoscaleLabels::weighingStatus($r->get('status'))),
             ]),
         ];
     }

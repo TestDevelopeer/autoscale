@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Orchid\Screens;
 
 use App\Services\LocalApiClient;
+use App\Support\OrchidRows;
 use Orchid\Screen\Actions\Link;
 use Orchid\Screen\Screen;
 use Orchid\Screen\TD;
@@ -22,7 +23,7 @@ class CameraListScreen extends Screen
             $cameras = [];
         }
 
-        return ['cameras' => $cameras];
+        return ['cameras' => OrchidRows::fromArrays($cameras)];
     }
 
     public function name(): ?string

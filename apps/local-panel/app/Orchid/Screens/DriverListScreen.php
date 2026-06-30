@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Orchid\Screens;
 
 use App\Services\LocalApiClient;
+use App\Support\OrchidRows;
 use Orchid\Screen\Actions\Link;
 use Orchid\Screen\Screen;
 use Orchid\Screen\TD;
@@ -22,7 +23,7 @@ class DriverListScreen extends Screen
             $drivers = [];
         }
 
-        return ['drivers' => $drivers];
+        return ['drivers' => OrchidRows::fromArrays($drivers)];
     }
 
     public function name(): ?string
