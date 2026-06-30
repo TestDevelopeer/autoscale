@@ -129,7 +129,7 @@ DEMO_SMOKE_FULL=1 ./scripts/demo-smoke.sh
 ## Экраны panel (после успешного probe)
 
 1. **Терминалы** — создать терминал с `driver_type=keli_d2008fa` или `cas_ci200a`, указать `port` в config.
-2. **Тест подключения** — `POST /api/terminals/{id}/test` (пока parser self-test на stub driver).
+2. **Тест подключения** — `POST /api/terminals/{id}/test`: для Keli открывает реальный COM; для DEMO — синтетический self-test.
 3. **Рабочее место** — только после стабильного hardware probe; для demo использовать **Demo Lane** (DEMO).
 
 **Не запускать** hardware workplace на первом тесте — только probe CLI.
@@ -256,9 +256,59 @@ Parser поддерживает формат:
 
 ### Следующий шаг
 
-1. Подключить Keli в **local-panel** (терминал с `driver_type=keli_d2008fa`, config: port/baud/parity).
-2. Проверить `POST /api/terminals/{id}/test` (**test_connection**).
-3. Проверить **workplace live** на реальной полосе (после стабильного panel test).
+1. ~~Подключить Keli в **local-panel**~~ — см. секцию ниже.
+2. Проверить **workplace live** на реальной полосе (после стабильного panel test).
+
+---
+
+## Keli D2008FA local-panel validation
+
+**Статус:** `terminal_probe` подтвердил реальный COM; **local-panel** `test_connection` для `keli_d2008fa` использует тот же serial-слой (`probe.serial_io`) и открывает физический порт.
+
+### Настройки (проверено на объекте)
+
+| Параметр | Значение |
+|----------|----------|
+| type | `keli_d2008fa` (Keli D2008FA) |
+| port | COM1 |
+| baudrate | 9600 |
+| parity | none |
+| timeout | 2 s |
+
+### Перед UI-тестом
+
+1. Закройте **PuTTY**, **terminal_probe** и любые программы, занимающие COM1 — иначе panel покажет `port_access_denied`, а не 500.
+2. Войдите в panel: http://127.0.0.1:8081/login → `operator@demo.local` / `demo`.
+3. Откройте **Терминалы → Добавить** (`/admin/terminals/create`).
+4. Заполните поля и нажмите **Проверить подключение**.
+
+### Ожидаемый Toast при успехе
+
+```text
+connected=true, weight=0, stable=true, unit=kg, raw=ST,GS,+0000000kg
+```
+
+(вес и raw — актуальные с терминала)
+
+### Цепочка вызовов
+
+```text
+local-panel → POST /api/terminals → POST /api/terminals/{id}/test
+  → KeliD2008faDriver.test_connection()
+  → keli_d2008fa/serial_session.py (open_serial, read frame)
+  → parse_keli_modbus_response (parser без изменений)
+```
+
+**DEMO terminal** (`driver_type=demo`) по-прежнему использует `DemoTerminalDriver` — demo-smoke не затрагивается.
+
+### Ошибки (без HTTP 500)
+
+| error_code | Причина |
+|------------|---------|
+| `port_not_found` | COM-порт не найден |
+| `port_access_denied` | Порт занят (PuTTY, probe, другая программа) |
+| `read_timeout` | Нет ответа за timeout |
+| `parse_failed` | raw получен, parser не распознал кадр |
 
 ---
 
