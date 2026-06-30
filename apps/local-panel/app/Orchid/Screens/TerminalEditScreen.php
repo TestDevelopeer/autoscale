@@ -36,6 +36,7 @@ class TerminalEditScreen extends Screen
     public function commandBar(): iterable
     {
         return [
+            Button::make('Проверить подключение')->method('testConnection')->icon('bs.plug'),
             Button::make('Сохранить')->method('save')->class('btn btn-primary'),
         ];
     }
@@ -50,20 +51,59 @@ class TerminalEditScreen extends Screen
                     'keli_d2008fa' => 'Keli D2008FA',
                     'cas_ci200a' => 'CAS CI-200A',
                 ]),
-                Input::make('terminal.config.port')->title('COM-порт')->help('Например COM3'),
+                Input::make('terminal.config.port')->title('COM-порт')->help('Например COM1'),
+                Input::make('terminal.config.baudrate')->title('Скорость')->value(9600),
+                Select::make('terminal.config.parity')->title('Чётность')->options([
+                    'none' => 'none',
+                    'even' => 'even',
+                    'odd' => 'odd',
+                ])->value('none'),
+                Input::make('terminal.config.timeout')->title('Таймаут (с)')->type('number')->value(2),
             ]),
         ];
     }
 
-    public function save(Request $request): \Illuminate\Http\RedirectResponse
+    private function terminalPayload(Request $request): array
     {
         $data = $request->get('terminal', []);
+        $config = array_filter([
+            'port' => $data['config']['port'] ?? null,
+            'baudrate' => isset($data['config']['baudrate']) ? (int) $data['config']['baudrate'] : null,
+            'parity' => $data['config']['parity'] ?? null,
+            'timeout' => isset($data['config']['timeout']) ? (float) $data['config']['timeout'] : null,
+        ], static fn ($value) => $value !== null && $value !== '');
+
+        return [
+            'name' => $data['name'] ?? 'Terminal',
+            'driver_type' => $data['driver_type'] ?? 'demo',
+            'config' => $config,
+        ];
+    }
+
+    public function testConnection(Request $request): void
+    {
         try {
-            $this->api->post('/api/terminals', [
-                'name' => $data['name'],
-                'driver_type' => $data['driver_type'],
-                'config' => array_filter(['port' => $data['config']['port'] ?? null]),
-            ]);
+            $terminal = $this->api->post('/api/terminals', $this->terminalPayload($request));
+            $result = $this->api->post('/api/terminals/'.$terminal['id'].'/test');
+            $reading = $result['sample_reading'] ?? null;
+            if (is_array($reading)) {
+                $weight = $reading['weight'] ?? '—';
+                $stable = ($reading['stable'] ?? false) ? 'true' : 'false';
+                $unit = $reading['unit'] ?? 'kg';
+                $raw = $reading['raw'] ?? ($result['message'] ?? '');
+                Toast::success("weight={$weight}, stable={$stable}, unit={$unit}, raw={$raw}");
+            } else {
+                Toast::success($result['message'] ?? 'Подключение успешно');
+            }
+        } catch (\Throwable $e) {
+            Toast::error($e->getMessage());
+        }
+    }
+
+    public function save(Request $request): \Illuminate\Http\RedirectResponse
+    {
+        try {
+            $this->api->post('/api/terminals', $this->terminalPayload($request));
             Toast::success('Терминал создан');
         } catch (\Throwable $e) {
             Toast::error($e->getMessage());

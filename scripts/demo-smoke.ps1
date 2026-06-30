@@ -124,6 +124,29 @@ try {
 }
 Ok "panel /login"
 
+Write-Host "==> local-panel admin routes (after login)"
+try {
+    $panelSession = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+    $loginPage = Invoke-WebRequest -Uri "$Panel/login" -UseBasicParsing -WebSession $panelSession
+    $csrf = [regex]::Match($loginPage.Content, 'name="_token" value="([^"]+)"').Groups[1].Value
+    if (-not $csrf) { Fail "panel login CSRF token missing" }
+    Invoke-WebRequest -Uri "$Panel/login" -Method POST -WebSession $panelSession -Body @{
+        email    = "operator@demo.local"
+        password = "demo"
+        _token   = $csrf
+    } -UseBasicParsing -MaximumRedirection 0 -ErrorAction SilentlyContinue | Out-Null
+    foreach ($adminPath in @("/admin/main", "/admin/terminals", "/admin/cameras", "/admin/workplaces", "/admin/weighings")) {
+        try {
+            Invoke-WebRequest -Uri "$Panel$adminPath" -WebSession $panelSession -UseBasicParsing | Out-Null
+        } catch {
+            Fail "panel $adminPath returned error"
+        }
+        Ok "panel $adminPath"
+    }
+} catch {
+    Fail "panel admin routes check failed: $_"
+}
+
 Write-Host "==> owner-admin"
 $ownerOk = $false
 try {
