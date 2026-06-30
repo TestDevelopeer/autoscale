@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     license_state_path: str = "./data/license_state.json"
 
     owner_admin_url: str = "http://127.0.0.1:8090"
-    cors_origins: str = "http://127.0.0.1:8080"
+    cors_origins: str = "http://127.0.0.1:8081,http://localhost:8081"
 
     secret_key: str = "change-me"
     access_token_expire_minutes: int = 480

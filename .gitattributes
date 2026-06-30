@@ -1,0 +1,5 @@
+# Shell-скрипты всегда LF (важно для WSL/Git Bash на Windows)
+*.sh text eol=lf
+
+# PowerShell-скрипты — CRLF для нативного Windows
+*.ps1 text eol=crlf

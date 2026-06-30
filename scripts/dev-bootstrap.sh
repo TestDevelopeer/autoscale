@@ -1,14 +1,21 @@
 #!/usr/bin/env bash
 # Bootstrap dev-окружения Autoscale на локальном PostgreSQL 17 (без Docker).
+# Linux/macOS/Git Bash. На Windows используйте scripts/dev-bootstrap.ps1
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PYTHON="${PYTHON:-python3.12}"
 DB_USER="${PGUSER:-$(whoami)}"
-DB_HOST="127.0.0.1"
-DB_PORT="5432"
+DB_HOST="${PGHOST:-127.0.0.1}"
+DB_PORT="${PGPORT:-5432}"
+LOCAL_DB="${LOCAL_DB_NAME:-autoscale_local}"
+OWNER_DB="${OWNER_DB_NAME:-autoscale_owner}"
 
 die() { echo "ERROR: $*" >&2; exit 1; }
+
+urlencode() {
+  "$PYTHON" -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1], safe=''))" "$1"
+}
 
 if ! command -v "$PYTHON" &>/dev/null; then
   PYTHON=python3
@@ -18,12 +25,14 @@ command -v psql >/dev/null || die "psql не найден — установит
 command -v php >/dev/null || die "php не найден"
 command -v composer >/dev/null || die "composer не найден"
 
+export PGPASSWORD="${PGPASSWORD:-}"
+
 echo "==> Проверка PostgreSQL"
 psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d postgres -c 'SELECT 1' >/dev/null \
   || die "Не удаётся подключиться к PostgreSQL как $DB_USER@$DB_HOST:$DB_PORT"
 
 echo "==> Создание БД (если нет)"
-for db in autoscale_local autoscale_owner; do
+for db in "$LOCAL_DB" "$OWNER_DB"; do
   if psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d postgres -lqt 2>/dev/null | cut -d \| -f 1 | grep -qw "$db"; then
     echo "  БД $db уже существует"
   else
@@ -76,7 +85,12 @@ API_ENV="$ROOT/apps/local-api/.env"
 if [ ! -f "$API_ENV" ]; then
   cp "$ROOT/apps/local-api/.env.example" "$API_ENV"
 fi
-DB_URL="postgresql+asyncpg://${DB_USER}@${DB_HOST}:${DB_PORT}/autoscale_local"
+if [ -n "${PGPASSWORD:-}" ]; then
+  ENC_PASS="$(urlencode "$PGPASSWORD")"
+  DB_URL="postgresql+asyncpg://${DB_USER}:${ENC_PASS}@${DB_HOST}:${DB_PORT}/${LOCAL_DB}"
+else
+  DB_URL="postgresql+asyncpg://${DB_USER}@${DB_HOST}:${DB_PORT}/${LOCAL_DB}"
+fi
 if grep -q "^DATABASE_URL=" "$API_ENV"; then
   sed -i.bak "s|^DATABASE_URL=.*|DATABASE_URL=$DB_URL|" "$API_ENV"
 else
@@ -86,6 +100,12 @@ if grep -q "^LICENSE_PUBLIC_KEY=" "$API_ENV"; then
   sed -i.bak "s|^LICENSE_PUBLIC_KEY=.*|LICENSE_PUBLIC_KEY=$LICENSE_PUBLIC_KEY|" "$API_ENV"
 else
   echo "LICENSE_PUBLIC_KEY=$LICENSE_PUBLIC_KEY" >> "$API_ENV"
+fi
+CORS_ORIGINS="http://127.0.0.1:8081,http://localhost:8081,http://127.0.0.1:8080,http://localhost:8080"
+if grep -q "^CORS_ORIGINS=" "$API_ENV"; then
+  sed -i.bak "s|^CORS_ORIGINS=.*|CORS_ORIGINS=$CORS_ORIGINS|" "$API_ENV"
+else
+  echo "CORS_ORIGINS=$CORS_ORIGINS" >> "$API_ENV"
 fi
 rm -f "$API_ENV.bak"
 
@@ -97,13 +117,20 @@ export LICENSE_PUBLIC_KEY
 "$ROOT/.venv/bin/alembic" upgrade head
 "$ROOT/.venv/bin/python" scripts/seed_demo.py
 
+echo "==> Проверка таблиц в $LOCAL_DB"
+TABLE_COUNT="$(psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$LOCAL_DB" -tAc \
+  "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE'")"
+[ "${TABLE_COUNT:-0}" -gt 0 ] || die "$LOCAL_DB не содержит таблиц после миграции"
+echo "  Найдено таблиц: $TABLE_COUNT"
+
 echo "==> owner-admin .env"
 OWNER_ENV="$ROOT/apps/owner-admin/.env"
 if [ ! -f "$OWNER_ENV" ]; then
   cp "$ROOT/apps/owner-admin/.env.example" "$OWNER_ENV"
   (cd "$ROOT/apps/owner-admin" && php artisan key:generate --force)
 fi
-for kv in "DB_USERNAME=$DB_USER" "DB_PASSWORD=" "DB_HOST=$DB_HOST" "DB_PORT=$DB_PORT" \
+for kv in "DB_CONNECTION=pgsql" "DB_USERNAME=$DB_USER" "DB_PASSWORD=${PGPASSWORD:-}" \
+          "DB_HOST=$DB_HOST" "DB_PORT=$DB_PORT" "DB_DATABASE=$OWNER_DB" \
           "LICENSE_SIGNING_PRIVATE_KEY=$LICENSE_SIGNING_PRIVATE_KEY" "LICENSE_PUBLIC_KEY=$LICENSE_PUBLIC_KEY"; do
   key="${kv%%=*}"
   val="${kv#*=}"
@@ -126,10 +153,16 @@ if [ ! -f "$PANEL_ENV" ]; then
   cp "$ROOT/apps/local-panel/.env.example" "$PANEL_ENV"
   (cd "$ROOT/apps/local-panel" && php artisan key:generate --force)
 fi
-if ! grep -q "^LOCAL_API_URL=" "$PANEL_ENV" 2>/dev/null; then
-  echo "LOCAL_API_URL=http://127.0.0.1:8000" >> "$PANEL_ENV"
-  echo "LOCAL_API_WS_URL=ws://127.0.0.1:8000" >> "$PANEL_ENV"
-fi
+for kv in "LOCAL_API_URL=http://127.0.0.1:8000" "LOCAL_API_WS_URL=ws://127.0.0.1:8000" "SESSION_DRIVER=file" "APP_URL=http://127.0.0.1:8081"; do
+  key="${kv%%=*}"
+  val="${kv#*=}"
+  if grep -q "^${key}=" "$PANEL_ENV" 2>/dev/null; then
+    sed -i.bak "s|^${key}=.*|${key}=${val}|" "$PANEL_ENV"
+  else
+    echo "${key}=${val}" >> "$PANEL_ENV"
+  fi
+done
+rm -f "$PANEL_ENV.bak"
 
 echo ""
 echo "Bootstrap завершён."

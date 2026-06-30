@@ -14,8 +14,8 @@
 
 | Сервис | URL |
 |--------|-----|
-| local-panel (login) | http://127.0.0.1:8080/login |
-| local-panel (admin) | http://127.0.0.1:8080/admin |
+| local-panel (login) | http://127.0.0.1:8081/login |
+| local-panel (admin) | http://127.0.0.1:8081/admin |
 | local-api | http://127.0.0.1:8000 |
 | owner-admin | http://127.0.0.1:8090/admin |
 | API docs | http://127.0.0.1:8000/docs |
@@ -44,7 +44,7 @@ chmod +x scripts/dev-bootstrap.sh
 cd apps/local-api && ../../.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 
 # Терминал 2
-cd apps/local-panel && php artisan serve --host=127.0.0.1 --port=8080
+cd apps/local-panel && php artisan serve --host=127.0.0.1 --port=8081
 
 # Терминал 3
 cd apps/owner-admin && php artisan serve --host=127.0.0.1 --port=8090
@@ -95,7 +95,7 @@ curl -s http://127.0.0.1:8000/api/health | jq .
 
 1. `./scripts/dev-bootstrap.sh`
 2. Запустить local-api, local-panel, owner-admin.
-3. Open http://127.0.0.1:8080/login → `operator@demo.local` / `demo`
+3. Open http://127.0.0.1:8081/login → `operator@demo.local` / `demo`
 4. Workplaces → Demo Lane → start
 5. Журнал → запись с plate A123BC77, weight ~15000 kg (через ~12 сек)
 

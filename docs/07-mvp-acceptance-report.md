@@ -14,7 +14,7 @@ createdb autoscale_owner   # однократно
 ./scripts/dev-bootstrap.sh
 
 cd apps/local-api && ../../.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
-cd apps/local-panel && php artisan serve --host=127.0.0.1 --port=8080
+cd apps/local-panel && php artisan serve --host=127.0.0.1 --port=8081
 cd apps/owner-admin && php artisan serve --host=127.0.0.1 --port=8090
 ```
 
