@@ -19,7 +19,7 @@
 | Лицензии | Ed25519, PHP/Python canonical JSON, feature-gating на API, demo license в seed |
 | UI | Orchid panel: dashboard, equipment, workplaces, journal, license, diagnostics |
 | Demo | DEMO terminal/camera/ALPR, bootstrap + smoke-скрипты |
-| Тесты | 20 passed, 1 skipped; защита demo-flow |
+| Тесты | 37 passed, 1 skipped; защита demo-flow |
 | Документация | docs/00–08, acceptance report, demo freeze |
 
 ---
@@ -52,20 +52,29 @@
 
 ## Этап 1: Проверка реального железа Keli D2008FA и CAS CI-200A
 
-**Статус:** в работе (`feature/hardware-validation`)
+**Статус:** частично завершён — Keli проверен на объекте; CAS ожидает проверки
 
 **Документ:** [`11-hardware-validation-plan.md`](11-hardware-validation-plan.md)
 
+| Терминал | Статус hardware validation |
+|----------|--------------------------|
+| **Keli D2008FA** | **validated on real hardware** (COM1, 9600, parity none; `terminal_probe`: 120 success / 0 failures) |
+| **CAS CI-200A** | **pending real hardware validation** |
+
 **Цель:** подтвердить парсеры и polling/stream на реальных весах.
 
-**Работы:**
-- Подключение по Modbus (Keli) и serial/stream (CAS)
-- Карта регистров / формат кадров на объекте
-- Стабильность флага `stable`, единицы (kg/t)
-- Интеграционные тесты с записанными raw-кадрами
-- Документация отклонений от `docs/05-hardware-drivers.md`
+**Выполнено (Keli):**
+- Реальный COM: `terminal_probe` на COM1, ASCII continuous `ST,GS,+0000000kg`
+- Parser: формат `<stability>,<weight_type>,<signed_weight><unit>` (ST/US, GS/NT)
+- Parity none (even давал битый raw)
+- Unit-тесты: 37 passed, 1 skipped
 
-**Критерий выхода:** 30+ мин непрерывного чтения без потери связи; вес на panel совпадает с индикатором весов.
+**Осталось:**
+- Подключить Keli в local-panel: test_connection + workplace live
+- CAS CI-200A: probe на реальном COM, сверка кадров и stable-флага
+- 30+ мин непрерывного чтения Keli на panel; вес совпадает с индикатором
+
+**Критерий выхода этапа:** оба терминала проверены; 30+ мин чтения без потери связи; вес на panel совпадает с индикатором весов.
 
 ---
 
