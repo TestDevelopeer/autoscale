@@ -33,12 +33,19 @@ final class ApiAuthController extends Controller
             [
                 'name' => $credentials['email'],
                 'password' => Hash::make($credentials['password']),
-                'permissions' => ['platform.autoscale' => true],
+                'permissions' => [
+                    'platform.index' => true,
+                    'platform.autoscale' => true,
+                ],
             ]
         );
 
-        if (empty($user->permissions)) {
-            $user->forceFill(['permissions' => ['platform.autoscale' => true]])->save();
+        $permissions = array_merge(
+            ['platform.index' => true, 'platform.autoscale' => true],
+            $user->permissions ?? []
+        );
+        if ($user->permissions !== $permissions) {
+            $user->forceFill(['permissions' => $permissions])->save();
         }
 
         Auth::login($user, $request->boolean('remember'));

@@ -146,6 +146,7 @@ echo "==> owner-admin migrate + seed"
 cd "$ROOT/apps/owner-admin"
 php artisan migrate --force
 php artisan db:seed --force
+php artisan optimize:clear
 
 echo "==> local-panel .env"
 PANEL_ENV="$ROOT/apps/local-panel/.env"
@@ -153,7 +154,7 @@ if [ ! -f "$PANEL_ENV" ]; then
   cp "$ROOT/apps/local-panel/.env.example" "$PANEL_ENV"
   (cd "$ROOT/apps/local-panel" && php artisan key:generate --force)
 fi
-for kv in "LOCAL_API_URL=http://127.0.0.1:8000" "LOCAL_API_WS_URL=ws://127.0.0.1:8000" "SESSION_DRIVER=file" "APP_URL=http://127.0.0.1:8081"; do
+for kv in "LOCAL_API_URL=http://127.0.0.1:8000" "LOCAL_API_WS_URL=ws://127.0.0.1:8000" "SESSION_DRIVER=file" "APP_URL=http://127.0.0.1:8081" "DB_CONNECTION=sqlite"; do
   key="${kv%%=*}"
   val="${kv#*=}"
   if grep -q "^${key}=" "$PANEL_ENV" 2>/dev/null; then
@@ -163,6 +164,14 @@ for kv in "LOCAL_API_URL=http://127.0.0.1:8000" "LOCAL_API_WS_URL=ws://127.0.0.1
   fi
 done
 rm -f "$PANEL_ENV.bak"
+
+echo "==> local-panel sqlite migrate + cache clear"
+PANEL_DIR="$ROOT/apps/local-panel"
+if [ ! -f "$PANEL_DIR/database/database.sqlite" ]; then
+  touch "$PANEL_DIR/database/database.sqlite"
+  echo "  Created database/database.sqlite"
+fi
+(cd "$PANEL_DIR" && php artisan migrate --force && php artisan optimize:clear)
 
 echo ""
 echo "Bootstrap завершён."

@@ -60,7 +60,8 @@ class PlatformProvider extends OrchidServiceProvider
     {
         return [
             ItemPermission::group('Autoscale')
-                ->addPermission('platform.autoscale', 'Доступ к панели'),
+                ->addPermission('platform.index', 'Доступ к панели Orchid')
+                ->addPermission('platform.autoscale', 'Доступ к Autoscale'),
         ];
     }
 }

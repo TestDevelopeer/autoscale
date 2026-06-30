@@ -42,7 +42,7 @@ storage/logs/
 .docker-data/
 
 # ALPR models
-models/
+./models/
 *.onnx
 *.pt
 

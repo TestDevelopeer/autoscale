@@ -107,6 +107,33 @@ function Ensure-LaravelAppKey {
     }
 }
 
+function Invoke-LaravelArtisan {
+    param(
+        [string]$AppDir,
+        [string[]]$ArtisanArgs
+    )
+    Push-Location $AppDir
+    & php artisan @ArtisanArgs
+    $code = $LASTEXITCODE
+    Pop-Location
+    if ($code -ne 0) {
+        Die "php artisan $($ArtisanArgs -join ' ') failed in $AppDir"
+    }
+}
+
+function Setup-LaravelPanel {
+    param([string]$AppDir)
+    $panelEnv = Join-Path $AppDir ".env"
+    Set-EnvFileValue $panelEnv "DB_CONNECTION" "sqlite"
+    $dbFile = Join-Path $AppDir "database\database.sqlite"
+    if (-not (Test-Path $dbFile)) {
+        New-Item -ItemType File -Path $dbFile -Force | Out-Null
+        Write-Host "  Created $dbFile"
+    }
+    Invoke-LaravelArtisan $AppDir @("migrate", "--force")
+    Invoke-LaravelArtisan $AppDir @("optimize:clear")
+}
+
 $script:PgHost = if ($env:PGHOST) { $env:PGHOST } else { "127.0.0.1" }
 $script:PgPort = if ($env:PGPORT) { $env:PGPORT } else { "5432" }
 $script:PgUser = if ($env:PGUSER) { $env:PGUSER } else { "postgres" }
@@ -292,12 +319,9 @@ Set-EnvFileValue $OwnerEnv "LICENSE_SIGNING_PRIVATE_KEY" $LicensePrivate
 Set-EnvFileValue $OwnerEnv "LICENSE_PUBLIC_KEY" $LicensePublic
 
 Write-Step "owner-admin migrate + seed"
-Push-Location $OwnerDir
-php artisan migrate --force
-if ($LASTEXITCODE -ne 0) { Pop-Location; Die "owner-admin migrate failed" }
-php artisan db:seed --force
-if ($LASTEXITCODE -ne 0) { Pop-Location; Die "owner-admin db:seed failed" }
-Pop-Location
+Invoke-LaravelArtisan $OwnerDir @("migrate", "--force")
+Invoke-LaravelArtisan $OwnerDir @("db:seed", "--force")
+Invoke-LaravelArtisan $OwnerDir @("optimize:clear")
 
 Write-Step "local-panel .env"
 $PanelDir = Join-Path $Root "apps\local-panel"
@@ -310,6 +334,9 @@ Set-EnvFileValue $PanelEnv "LOCAL_API_URL" "http://127.0.0.1:8000"
 Set-EnvFileValue $PanelEnv "LOCAL_API_WS_URL" "ws://127.0.0.1:8000"
 Set-EnvFileValue $PanelEnv "SESSION_DRIVER" "file"
 Set-EnvFileValue $PanelEnv "APP_URL" "http://127.0.0.1:8081"
+
+Write-Step "local-panel sqlite migrate + cache clear"
+Setup-LaravelPanel $PanelDir
 
 Write-Host ""
 Write-Host "Bootstrap complete." -ForegroundColor Green
